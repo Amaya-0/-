@@ -50,6 +50,22 @@
             <label for="amount">金额:</label>
             <input type="number" id="amount" name="amount" step="0.01" required>
         </div>
+        <div>
+            <label for="purpose">用途:</label>
+            <input type="text" id="purpose" name="purpose" required>
+        </div>
+        <div>
+            <label for="handler">经手人:</label>
+            <input type="text" id="handler" name="handler" required>
+        </div>
+        <div>
+            <label for="witness">证明人:</label>
+            <input type="text" id="witness" name="witness" required>
+        </div>
+        <div>
+            <label for="pages">页数:</label>
+            <input type="number" id="pages" name="pages" required>
+        </div>
         <button type="button" onclick="addInvoice()">添加发票</button>
     </form>
     <h2>发票清单</h2>
@@ -60,6 +76,10 @@
                 <th>子类别</th>
                 <th>物品名称</th>
                 <th>金额</th>
+                <th>用途</th>
+                <th>经手人</th>
+                <th>证明人</th>
+                <th>页数</th>
             </tr>
         </thead>
         <tbody id="invoiceTableBody">
@@ -67,8 +87,9 @@
         </tbody>
     </table>
     <h3>总金额: <span id="totalAmount">0</span></h3>
-    <button onclick="generateReport()">生成清单</button>
+    <button onclick="generateExcel()">下载清单为Excel</button>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
     <script>
         let invoices = [];
 
@@ -83,7 +104,7 @@
         function updateSubCategory() {
             const mainCategory = document.getElementById('mainCategory').value;
             const subCategory = document.getElementById('subCategory');
-            subCategory.innerHTML = '<option value="">请选择</option>';
+            subCategory.innerHTML = '<option value="">请选择子类别</option>';
 
             if (mainCategory && categories[mainCategory]) {
                 categories[mainCategory].forEach(item => {
@@ -112,14 +133,18 @@
             const subCategory = document.getElementById('subCategory').value;
             let itemName = document.getElementById('itemName').value;
             const amount = parseFloat(document.getElementById('amount').value);
+            const purpose = document.getElementById('purpose').value;
+            const handler = document.getElementById('handler').value;
+            const witness = document.getElementById('witness').value;
+            const pages = parseInt(document.getElementById('pages').value);
 
             if (subCategory.includes("其他")) {
                 const otherDescription = document.getElementById('otherDescription').value;
                 itemName = `${subCategory.replace("：______", "")}: ${otherDescription}`;
             }
 
-            if (mainCategory && subCategory && itemName && amount) {
-                invoices.push({ mainCategory, subCategory, itemName, amount });
+            if (mainCategory && subCategory && itemName && !isNaN(amount) && purpose && handler && witness && !isNaN(pages)) {
+                invoices.push({ mainCategory, subCategory, itemName, amount, purpose, handler, witness, pages });
                 updateTable();
                 document.getElementById('invoiceForm').reset();
                 document.getElementById('otherDescriptionDiv').classList.add("hidden");
@@ -139,26 +164,35 @@
                 row.insertCell(1).innerText = invoice.subCategory;
                 row.insertCell(2).innerText = invoice.itemName;
                 row.insertCell(3).innerText = invoice.amount.toFixed(2);
+                row.insertCell(4).innerText = invoice.purpose;
+                row.insertCell(5).innerText = invoice.handler;
+                row.insertCell(6).innerText = invoice.witness;
+                row.insertCell(7).innerText = invoice.pages;
             });
 
             document.getElementById('totalAmount').innerText = totalAmount.toFixed(2);
         }
 
-        function generateReport() {
-            console.log("发票清单:");
-            console.log("主类别\t子类别\t物品名称\t金额");
+        function generateExcel() {
+            const sheetData = [["主类别", "子类别", "物品名称", "金额", "用途", "经手人", "证明人", "页数"]];
             invoices.forEach(invoice => {
-                console.log(`${invoice.mainCategory}\t${invoice.subCategory}\t${invoice.itemName}\t${invoice.amount.toFixed(2)}`);
+                sheetData.push([
+                    invoice.mainCategory,
+                    invoice.subCategory,
+                    invoice.itemName,
+                    invoice.amount,
+                    invoice.purpose,
+                    invoice.handler,
+                    invoice.witness,
+                    invoice.pages
+                ]);
             });
-            console.log(`总金额: ${calculateTotalAmount().toFixed(2)}`);
-        }
 
-        function calculateTotalAmount() {
-            let total = 0;
-            invoices.forEach(invoice => {
-                total += invoice.amount;
-            });
-            return total;
+            const worksheet = XLSX.utils.aoa_to_sheet(sheetData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "发票清单");
+
+            XLSX.writeFile(workbook, "发票清单.xlsx");
         }
     </script>
 </body>
