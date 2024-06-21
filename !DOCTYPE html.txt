@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>发票收集和汇总</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: center;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>发票收集和汇总</h1>
+    <form id="invoiceForm">
+        <div>
+            <label for="mainCategory">主类别:</label>
+            <select id="mainCategory" name="mainCategory" onchange="updateSubCategory()" required>
+                <option value="">请选择</option>
+                <option value="日常办公">日常办公</option>
+                <option value="印刷">印刷</option>
+                <option value="邮电费">邮电费</option>
+                <option value="租赁费">租赁费</option>
+                <option value="其他租赁费">其他租赁费</option>
+            </select>
+        </div>
+        <div>
+            <label for="subCategory">子类别:</label>
+            <select id="subCategory" name="subCategory" onchange="checkOther()" required>
+                <option value="">请选择主类别</option>
+            </select>
+        </div>
+        <div id="otherDescriptionDiv" class="hidden">
+            <label for="otherDescription">请注明其他:</label>
+            <input type="text" id="otherDescription" name="otherDescription">
+        </div>
+        <div>
+            <label for="itemName">物品名称:</label>
+            <input type="text" id="itemName" name="itemName" required>
+        </div>
+        <div>
+            <label for="amount">金额:</label>
+            <input type="number" id="amount" name="amount" step="0.01" required>
+        </div>
+        <button type="button" onclick="addInvoice()">添加发票</button>
+    </form>
+    <h2>发票清单</h2>
+    <table id="invoiceTable">
+        <thead>
+            <tr>
+                <th>主类别</th>
+                <th>子类别</th>
+                <th>物品名称</th>
+                <th>金额</th>
+            </tr>
+        </thead>
+        <tbody id="invoiceTableBody">
+            <!-- 动态添加行 -->
+        </tbody>
+    </table>
+    <h3>总金额: <span id="totalAmount">0</span></h3>
+    <button onclick="generateReport()">生成清单</button>
+
+    <script>
+        let invoices = [];
+
+        const categories = {
+            "日常办公": ["办公用品", "签字笔", "笔记本", "信封", "文件夹", "电话机", "计算器", "横幅", "窗帘", "名片", "办公室标志牌", "饮用水", "纸杯", "卷纸", "垃圾袋", "鼠标", "键盘", "U盘", "复印纸", "硒鼓", "墨盒", "其他：______"],
+            "印刷": ["打印", "复印", "海报制作", "展板", "标牌制作", "资料印刷", "其他：______"],
+            "邮电费": ["邮寄费：快递费", "电报费", "传真费"],
+            "租赁费": ["房屋设备等租赁费：办公用房", "宿舍", "设备", "其他：______"],
+            "其他租赁费": ["场地租金", "服装租金", "盆花租金", "展位租金装修", "学生活动租场费", "其他：______"]
+        };
+
+        function updateSubCategory() {
+            const mainCategory = document.getElementById('mainCategory').value;
+            const subCategory = document.getElementById('subCategory');
+            subCategory.innerHTML = '<option value="">请选择</option>';
+
+            if (mainCategory && categories[mainCategory]) {
+                categories[mainCategory].forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = item;
+                    option.text = item;
+                    subCategory.appendChild(option);
+                });
+            }
+        }
+
+        function checkOther() {
+            const subCategory = document.getElementById('subCategory').value;
+            const otherDescriptionDiv = document.getElementById('otherDescriptionDiv');
+            if (subCategory.includes("其他")) {
+                otherDescriptionDiv.classList.remove("hidden");
+                document.getElementById('otherDescription').required = true;
+            } else {
+                otherDescriptionDiv.classList.add("hidden");
+                document.getElementById('otherDescription').required = false;
+            }
+        }
+
+        function addInvoice() {
+            const mainCategory = document.getElementById('mainCategory').value;
+            const subCategory = document.getElementById('subCategory').value;
+            let itemName = document.getElementById('itemName').value;
+            const amount = parseFloat(document.getElementById('amount').value);
+
+            if (subCategory.includes("其他")) {
+                const otherDescription = document.getElementById('otherDescription').value;
+                itemName = `${subCategory.replace("：______", "")}: ${otherDescription}`;
+            }
+
+            if (mainCategory && subCategory && itemName && amount) {
+                invoices.push({ mainCategory, subCategory, itemName, amount });
+                updateTable();
+                document.getElementById('invoiceForm').reset();
+                document.getElementById('otherDescriptionDiv').classList.add("hidden");
+            }
+        }
+
+        function updateTable() {
+            const tableBody = document.getElementById('invoiceTableBody');
+            tableBody.innerHTML = '';
+            let totalAmount = 0;
+
+            invoices.forEach(invoice => {
+                totalAmount += invoice.amount;
+
+                const row = tableBody.insertRow();
+                row.insertCell(0).innerText = invoice.mainCategory;
+                row.insertCell(1).innerText = invoice.subCategory;
+                row.insertCell(2).innerText = invoice.itemName;
+                row.insertCell(3).innerText = invoice.amount.toFixed(2);
+            });
+
+            document.getElementById('totalAmount').innerText = totalAmount.toFixed(2);
+        }
+
+        function generateReport() {
+            console.log("发票清单:");
+            console.log("主类别\t子类别\t物品名称\t金额");
+            invoices.forEach(invoice => {
+                console.log(`${invoice.mainCategory}\t${invoice.subCategory}\t${invoice.itemName}\t${invoice.amount.toFixed(2)}`);
+            });
+            console.log(`总金额: ${calculateTotalAmount().toFixed(2)}`);
+        }
+
+        function calculateTotalAmount() {
+            let total = 0;
+            invoices.forEach(invoice => {
+                total += invoice.amount;
+            });
+            return total;
+        }
+    </script>
+</body>
+</html>
